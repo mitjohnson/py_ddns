@@ -66,15 +66,15 @@ https://developers.cloudflare.com/api/operations/dns-records-for-a-zone-list-dns
 try:
     response = requests.get(f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?type=A&name={record_name}",
         headers={"X-Auth-Email": email, auth_header:api_key, "Content-Type":"application/json"})
+    reply: dict = json.loads(response.text)
     response.raise_for_status()
-
-    old_ip: str = json.loads(response.text)["result"][0]["content"]
-    record_id: str = json.loads(response.text)["result"][0]["id"]
-
+    
+    old_ip: str = reply["result"][0]["content"]
+    record_id: str = reply["result"][0]["id"]
 except HTTPError as http_err:
     # The status code is 400-600, report failure and end.
     print(f"HTTP Error: {http_err}.  Unable to query cloudflare.")
-    print(f"Cloudflare message: errors:{response.text['errors']}")
+    print(f"Cloudflare message: errors:{reply['errors']}")
     exit()
 except Exception as err:
     # General error, log and exit
