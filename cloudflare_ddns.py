@@ -94,8 +94,7 @@ try:
     update = requests.patch(f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{record_id}",
         headers={"X-Auth-Email": email, auth_header:api_key, "Content-Type":"application/json"},
         json={"content":curr_ip,"name":record_name,"type":"A","proxied":proxy,"comment":comment, "tags":tags,"ttl":dns_ttl,}) 
-    reply: str = json.loads(update.text)
-    success: bool = reply["success"]
+    reply: dict = json.loads(update.text)
 
     update.raise_for_status()
 except HTTPError as http_err:
