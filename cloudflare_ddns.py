@@ -66,9 +66,9 @@ https://developers.cloudflare.com/api/operations/dns-records-for-a-zone-list-dns
 try:
     response = requests.get(f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?type=A&name={record_name}",
         headers={"X-Auth-Email": email, auth_header:api_key, "Content-Type":"application/json"})
-    reply: dict = json.loads(response.text)
+    reply: dict[dict[dict]] = json.loads(response.text)
     response.raise_for_status()
-    
+
     old_ip: str = reply["result"][0]["content"]
     record_id: str = reply["result"][0]["id"]
 except HTTPError as http_err:
@@ -94,7 +94,7 @@ try:
     update = requests.patch(f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{record_id}",
         headers={"X-Auth-Email": email, auth_header:api_key, "Content-Type":"application/json"},
         json={"content":curr_ip,"name":record_name,"type":"A","proxied":proxy,"comment":comment, "tags":tags,"ttl":dns_ttl,}) 
-    reply: dict = json.loads(update.text)
+    reply: dict[dict[dict]] = json.loads(update.text)
 
     update.raise_for_status()
 except HTTPError as http_err:
