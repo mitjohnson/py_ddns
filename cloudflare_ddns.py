@@ -49,7 +49,7 @@ if curr_ip == "fail":
     except Exception as err:
         # General error, log and exit
         print(f"Error: {err}, unable to resolve Public IP.")
-        quit()
+        exit()
 
 # Set proper headers for auth method.
 if "global" in auth_method.lower():
@@ -58,17 +58,25 @@ else:
     auth_header = "Authorization"
     api_key = "Bearer " + api_key
 
-# Query cloudflare
+# Query cloudflare. API Refrence:
+#https://developers.cloudflare.com/api/operations/dns-records-for-a-zone-list-dns-records
 try:
     response = requests.get(f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?type=A&name={record_name}",
         headers={"X-Auth-Email": email, auth_header:api_key, "Content-Type":"application/json"})
     response.raise_for_status()
 
 except HTTPError as http_err:
-    print(f"HTTP Error: {http_err}.  Unable to query cloudflare, check.")
+    print(f"HTTP Error: {http_err}.  Unable to query cloudflare.")
+    print(f"Cloudflare message: errors:{response.text['errors']}")
+    exit()
+except Exception as err:
+    # General error, log and exit
+    print(f"Error: {err}, unable to query cloudflare.")
+    exit()
 
 # Parse out IP recorded in cloudflare.
 old_ip: str = json.loads(response.text)["result"][0]["content"]
+# Obtain record ID
 record_id: str = json.loads(response.text)["result"][0]["id"]
 
 # Check if IP needs to be changed
@@ -76,6 +84,8 @@ if old_ip == curr_ip:
    print(f"IP: {curr_ip} for {record_name} is up to date and has not been changed.")
    exit()
 
+# Update A record. API ref:
+# https://developers.cloudflare.com/api/operations/dns-records-for-a-zone-patch-dns-record
 try:
     update = requests.patch(f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{record_id}",
         headers={"X-Auth-Email": email, auth_header:api_key, "Content-Type":"application/json"},
