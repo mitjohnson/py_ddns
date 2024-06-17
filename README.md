@@ -1,5 +1,5 @@
 ## Usage
-Clone repsoitory or copy/paste the python script
+Clone repository or copy/paste the python script
 
 ```bash
 git clone https://github.com/Mitchell-jpg/cloudflare_ddns.git
