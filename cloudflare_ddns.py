@@ -1,6 +1,15 @@
 import requests
+from datetime import datetime, timezone
+import logging
 import json
 from requests.exceptions import HTTPError
+
+
+# logging Options
+time_now = datetime.now(timezone.utc)
+print(str(time_now))
+logging.basicConfig(level=logging.DEBUG, filename=f"cloudflare_ddns{time_now}.log", filemode="w",
+                    format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Required
 email = ""
@@ -23,15 +32,16 @@ try:
     response = requests.get('https://api.ipify.org')
     response.raise_for_status()
     curr_ip = response.text
+    logging.info(f"sucesfully obtained IP adress: {curr_ip} from ipify")
 
 except HTTPError as http_err:
     # The status code is 400-600, try another service.
     curr_ip = "fail"
-    print(f"HTTP error: {http_err}, attempting different service..")
+    logging.warning(f"HTTP error: {http_err}, attempting different service..")
 except Exception as err:
     # General error, try another service
     curr_ip = "fail"
-    print(f"Error: {err}, attemting different service..")
+    logging.warning(f"Error: {err}, attemting different service..")
 
 if curr_ip == "fail":
     try:
@@ -40,14 +50,15 @@ if curr_ip == "fail":
         response.raise_for_status()
         response_list: list[str] = response.text.split("\n")
         curr_ip = response_list[2].lstrip("ip=")
+        logging.info(f"sucesfully obtained IP adress: {curr_ip} from cloudflare")
 
     except HTTPError as http_err:
         # The status code is 400-600, report failure and end.
-        print(f"HTTP error: {http_err}, unable to resolve Public IP.")
+        logging.exception(f"HTTP error: {http_err}, unable to resolve Public IP.")
         exit()
     except Exception as err:
         # General error, log and exit
-        print(f"Error: {err}, unable to resolve Public IP.")
+        logging.exception(f"Error: {err}, unable to resolve Public IP.")
         exit()
 
 """ Set proper headers for auth method. """
@@ -68,17 +79,19 @@ try:
         headers={"X-Auth-Email": email, auth_header:api_key, "Content-Type":"application/json"})
     reply: dict[dict[dict]] = json.loads(response.text)
     response.raise_for_status()
+    logging.debug(f"Sent {response} to cloudflare.")
+    logging.debug(f"recieved {reply} from cloudflare.")
 
     old_ip: str = reply["result"][0]["content"]
     record_id: str = reply["result"][0]["id"]
 except HTTPError as http_err:
     # The status code is 400-600, report failure and end.
-    print(f"HTTP Error: {http_err}.  Unable to query cloudflare.")
-    print(f"Cloudflare message: errors:{reply['errors']}")
+    logging.exception(f"HTTP Error: {http_err}.  Unable to query cloudflare.")
+    logging.exception(f"Cloudflare message: errors:{reply['errors']}")
     exit()
 except Exception as err:
     # General error, log and exit
-    print(f"Error: {err}, unable to query cloudflare.")
+    logging.exception(f"Error: {err}, unable to query cloudflare.")
     exit()
 
 """ 
@@ -87,6 +100,7 @@ https://developers.cloudflare.com/api/operations/dns-records-for-a-zone-patch-dn
 
 # Check if IP needs to be changed
 if old_ip == curr_ip:
+   logging.info(f"IP: {curr_ip} for {record_name} is up to date and has not been changed.")
    print(f"IP: {curr_ip} for {record_name} is up to date and has not been changed.")
    exit()
 
@@ -95,15 +109,17 @@ try:
         headers={"X-Auth-Email": email, auth_header:api_key, "Content-Type":"application/json"},
         json={"content":curr_ip,"name":record_name,"type":"A","proxied":proxy,"comment":comment, "tags":tags,"ttl":dns_ttl,}) 
     reply: dict[dict[dict]] = json.loads(update.text)
-
     update.raise_for_status()
+    logging.debug(f"Sent {response} to cloudflare.")
+    logging.debug(f"recieved {reply} from cloudflare.")
 except HTTPError as http_err:
-    print(f"HTTP Error: {http_err}. Unable to update IP for {record_name}")
-    print(f"Cloudflare message: errors:{reply['errors']}")
+    logging.exception(f"HTTP Error: {http_err}. Unable to update IP for {record_name}")
+    logging.debug(f"Cloudflare message: errors:{reply['errors']}")
     exit()
 except Exception as err:
     # General error, log and exit
-    print(f"Error: {err}, Unable to update IP for {record_name}")
+    logging.exception(f"Error: {err}, Unable to update IP for {record_name}")
     exit()
 
+logging.info(f"IP for {record_name} has been changed from {old_ip} to {curr_ip}.")
 print(f"IP for {record_name} has been changed from {old_ip} to {curr_ip}.")
