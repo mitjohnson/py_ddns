@@ -1,11 +1,12 @@
 import requests
+import os
 from datetime import datetime, timezone
 import logging
 import json
 from requests.exceptions import HTTPError
 
 # create logging directory
-directory = "./cloudflare_ddns_logs"
+directory = "/cloudflare_ddns_logs" # change this to your perferred location, ensure filename in logging is the same.
 
 if not os.path.exists(directory):
         os.makedirs(directory)
@@ -13,7 +14,7 @@ if not os.path.exists(directory):
 # logging Options
 time_now = datetime.now(timezone.utc)
 print(str(time_now))
-logging.basicConfig(level=logging.DEBUG, filename=f"./cloudflare_ddns_logs/cloudflare_ddns{time_now}.log", filemode="w",
+logging.basicConfig(level=logging.DEBUG, filename=f"/cloudflare_ddns_logs/cloudflare_ddns{time_now}.log", filemode="w",
                     format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Required
