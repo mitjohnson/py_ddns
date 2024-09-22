@@ -5,14 +5,7 @@ const zoneID = "";                                             // found in overv
 const dns_ttl = 3600;
 const record_name = "";                                        // example.com
 const proxy = true;
-
 const cloudFlareURL = `https://api.cloudflare.com/client/v4/zones/${zoneID}/dns_records?type=A&name=${record_name}`;
-
-
-//get current IP
-
-// obtain from either hhtps://api.ipify.org
-// or https://cloudflare.com/cdn-cgi/trace
 
 const getIP = async () => {
     const websites = ["https://api.ipify.org","https://cloudflare.com/cdn-cgi/trace"];
