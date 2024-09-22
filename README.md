@@ -9,6 +9,7 @@ Allow the script to execute
 
 ```bash
 sudo chmod +x cloudflare_ddns.py
+sudo chmod +x ddns.js
 ```
 
 This script is used with crontab. Specify the frequency of execution through crontab.
@@ -22,5 +23,5 @@ This script is used with crontab. Specify the frequency of execution through cro
 # │ │ │ │ │ ┌───────────── command to issue                               
 # │ │ │ │ │ │
 # │ │ │ │ │ │
-# * * * * * /usr/bin/python /path/to/my_script.py
+# * * * * * /usr/bin/python /path/to/my_script
 ```
