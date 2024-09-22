@@ -1,11 +1,11 @@
 const email = "";
-let api_key = ""
-const auth_method = "token";                                   // token or global
+let apiKey = ""
+const authMethod = "token";                                    // token or global
 const zoneID = "";                                             // found in overview tab
-const dns_ttl = 3600;
-const record_name = "";                                        // example.com
+const dnsTTL = 3600;
+const recordName = "";                                         // example.com
 const proxy = true;
-const cloudFlareURL = `https://api.cloudflare.com/client/v4/zones/${zoneID}/dns_records?type=A&name=${record_name}`;
+const cloudFlareURL = `https://api.cloudflare.com/client/v4/zones/${zoneID}/dns_records?type=A&name=${recordName}`;
 
 const getIP = async () => {
     const websites = ["https://api.ipify.org","https://cloudflare.com/cdn-cgi/trace"];
@@ -35,15 +35,15 @@ const getIP = async () => {
 
 const getAuthHeaders = () => {
     // craft auth headers
-    let auth_header = "";
+    let authHeader = "";
 
-    if (auth_method.toLowerCase() === "global"){
-        auth_header = "X-Auth-Key";
-        return auth_header;
+    if (authMethod.toLowerCase() === "global"){
+        authHeader = "X-Auth-Key";
+        return authHeader;
     } else{
-        auth_header = "Authorization"; 
-        let newApiKey = "Bearer " + api_key;
-        return [auth_header, newApiKey];
+        authHeader = "Authorization"; 
+        let newApiKey = "Bearer " + apiKey;
+        return [authHeader, newApiKey];
     };
 };
 
@@ -65,10 +65,10 @@ const getCloudInfo = async (cloudFlareURL) => {
         };
 
         const reply = await cloudflare.json();
-
+        console.log(reply);
         const oldIP = await reply["result"][0]["content"];
-        const record_id = await reply["result"][0]["id"];
-        return [oldIP, record_id];
+        const recordID = await reply["result"][0]["id"];
+        return [oldIP, recordID];
 
     } catch (error){
         console.error(error.message);
@@ -78,8 +78,9 @@ const getCloudInfo = async (cloudFlareURL) => {
 const updateCF = async () => {  
     // get old IP & record ID
     const cloudInfo = await getCloudInfo(cloudFlareURL);
-    const oldIP = cloudInfo[0];
-    const recordID = cloudInfo[1];
+    console.log(cloudInfo);
+    const oldIP = await cloudInfo[0];
+    const recordID = await cloudInfo[1];
 
     // get current IP
     const currIP = await getIP();
@@ -99,10 +100,10 @@ const updateCF = async () => {
                 }, 
                 body: JSON.stringify({
                     "content": currIP,
-                    "name": record_name,
+                    "name": recordName,
                     "type": "A",
                     "proxied": proxy,
-                    "ttl": dns_ttl 
+                    "ttl": dnsTTL 
                 }),
             });
 
@@ -111,7 +112,7 @@ const updateCF = async () => {
             if (!patch.ok){
                 throw new Error(`Response status: ${patch.status}, ${reply.errors}`)
             }
-            console.log(`IP changed from ${oldIP} to ${currIP} on ${record_name}`);
+            console.log(`IP changed from ${oldIP} to ${currIP} on ${recordName}`);
         } catch (error) {
             console.log(error.message);
         };
