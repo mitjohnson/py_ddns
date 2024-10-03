@@ -9,10 +9,17 @@ Allow the script to execute
 
 ```bash
 sudo chmod +x cloudflare_ddns.py
-sudo chmod +x ddns.js
 ```
 
-This script is used with crontab. Specify the frequency of execution through crontab.
+Interface
+
+
+
+![image](https://github.com/user-attachments/assets/4882e820-213c-4af3-8e9e-8034570fa302)
+
+After initial setup which will consist of entering the API key and other domain information, a pickle file will be created that will save the instance.
+
+With the pickle file created from initial setup, you may now scheduele the script to run via crontab:
 
 ```bash
 # ┌───────────── minute (0 - 59)
@@ -23,5 +30,5 @@ This script is used with crontab. Specify the frequency of execution through cro
 # │ │ │ │ │ ┌───────────── command to issue                               
 # │ │ │ │ │ │
 # │ │ │ │ │ │
-# * * * * * /usr/bin/python /path/to/my_script
+# * * * * * /usr/bin/python3 /path/to/clouflfare_ddns.py --name "yourdomain.com"
 ```
