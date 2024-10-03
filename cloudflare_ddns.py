@@ -140,9 +140,9 @@ class DDNS_Client:
         record_id: str = query["record_id"]
 
         if query["old_ip"] == curr_ip:
-            return [False, record_id, curr_ip]
+            return [False, record_id, curr_ip, old_ip]
         
-        return [True, record_id, curr_ip]
+        return [True, record_id, curr_ip, old_ip]
 
     def update(self) -> None:
         """Update A record."""
@@ -156,6 +156,7 @@ class DDNS_Client:
         dns_ttl = self.dns_ttl
         proxy = self.proxy
 
+
         answer = self.is_same_IP()
         record_id = answer[0]
 
@@ -163,7 +164,7 @@ class DDNS_Client:
             try:
                 update = requests.patch(f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{record_id}",
                     headers={"X-Auth-Email": email, auth_header:api_key, "Content-Type":"application/json"},
-                    json={"content":curr_ip,"name":record_name,"type":"A","proxied":proxy,"ttl":dns_ttl,}) 
+                    json={"content":answer[2],"name":record_name,"type":"A","proxied":proxy,"ttl":dns_ttl,}) 
                 reply: dict[dict[dict]] = json.loads(update.text)
                 update.raise_for_status()
                 logging.debug(f"Sent {update} to cloudflare.")
@@ -177,8 +178,8 @@ class DDNS_Client:
                 logging.exception(f"Error: {err}, Unable to update IP for {record_name}")
                 exit()
 
-            logging.info(f"IP for {record_name} has been changed from {old_ip} to {curr_ip}.")
-            print(f"IP for {record_name} has been changed from {old_ip} to {curr_ip}.")
+            logging.info(f"IP for {record_name} has been changed from {answer[3]} to {answer[3]}.")
+            print(f"IP for {record_name} has been changed from {answer[3]} to {answer[3]}.")
             exit()
 
         logging.info(f"IP: {answer[2]} for {record_name} is up to date and has not been changed.")
