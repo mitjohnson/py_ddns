@@ -15,7 +15,7 @@ This Dynamic DNS (DDNS) client allows users to automate the management of DNS re
 Clone repository or copy/paste the python script
 
 ```bash
-git clone https://github.com/Mitchell-jpg/cloudflare_ddns.git
+git clone https://github.com/boring-jpg/cloudflare_ddns.git
 ```
 
 Allow the script to execute
