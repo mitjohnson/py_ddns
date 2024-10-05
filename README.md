@@ -1,3 +1,16 @@
+# Dynamic DNS Client for Cloudflare
+
+## Overview
+This Dynamic DNS (DDNS) client allows users to automate the management of DNS records with Cloudflare. By interfacing directly with the Cloudflare API, the tool enables seamless updates of domain IP addresses, ensuring that your domains always point to the correct public IP.
+
+## Features
+- **Dynamic IP Management:** Automatically detects changes to your public IP and updates the corresponding DNS records in real-time.
+- **Flexible Authentication:** Supports both Token and Global authentication methods, providing enhanced security options.
+- **Intelligent IP Resolution:** Utilizes multiple services to retrieve the current public IP, ensuring reliability under varying network conditions.
+- **Cross-Platform Compatibility:** Functions on multiple operating systems, making it accessible for all users.
+- **Persistent State Management:** Saves user sessions using `pickle`, allowing you to resume operations without reconfiguration.
+- **Comprehensive Logging:** Implements robust logging to capture errors and operations, aiding in debugging and monitoring.
+
 ## Usage
 Clone repository or copy/paste the python script
 
@@ -11,7 +24,7 @@ Allow the script to execute
 sudo chmod +x cloudflare_ddns.py
 ```
 
-Interface
+## Interface
 
 
 
