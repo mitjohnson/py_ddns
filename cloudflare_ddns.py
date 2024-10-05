@@ -5,7 +5,7 @@ import argparse
 import logging
 import pickle
 import json
-import re
+import sys
 import os
 
 class DDNS_Client:
@@ -26,24 +26,11 @@ class DDNS_Client:
             auth_method_input = input("Is this Token Authentication or Global?: ")
 
             for v in allowed_values:
-                if v in auth_method_input:
+                if v == auth_method_input.lower():
                     self.auth_method = auth_method_input
                     validating = False
                 else:
                     continue
-        
-        directory = "/var/log/cloudflare_ddns" # change this to your perferred location, ensure filename in logging is the same.
-        if not os.path.exists(directory):
-                os.makedirs(directory)
-
-        # logging Options
-        time_now = datetime.now(timezone.utc)
-
-        logging.basicConfig(level=logging.DEBUG,
-                            filename=f"{directory}/cloudflare_ddns{time_now}.log",
-                            filemode="w",
-                            format="%(asctime)s - %(levelname)s - %(message)s"
-                            )
                        
     def get_ip(self) -> str:
         """ Retrieve current public IP """
@@ -139,10 +126,10 @@ class DDNS_Client:
         old_ip: str = query["old_ip"]
         record_id: str = query["record_id"]
 
-        if query["old_ip"] == curr_ip:
-            return [False, record_id, curr_ip, old_ip]
+        if old_ip == curr_ip:
+            return {"bool":True, "record_id":record_id, "curr_ip":curr_ip, "old_ip":old_ip}
         
-        return {"bool":True, "record_id":record_id, "curr_ip":curr_ip, "old_ip":old_ip}
+        return {"bool":False, "record_id":record_id, "curr_ip":curr_ip, "old_ip":old_ip}
 
     def update(self) -> None:
         """Update A record."""
@@ -186,7 +173,35 @@ class DDNS_Client:
         print(f"IP: {answer["old_ip"]} for {record_name} is up to date and has not been changed.")
         exit()
 
+
+def start_logging() -> None:
+    """Initiate logging to OS log folder"""
+    
+    OpSystem = sys.platform
+    user_name = os.path.expanduser("~")
+    match OpSystem.lower():
+        case "windows":
+            directory = os.path.normcase(f"{user_name}/AppData/Local")
+        case "linux":
+            directory = "/var/log/"
+            
+    log_path = os.path.normcase(f"{directory}/cloudflare_ddns")
+
+    if not os.path.exists(f"{log_path}"):
+            os.makedirs(log_path)
+
+    # logging Options
+    time_now = datetime.now(timezone.utc)
+
+    logging.basicConfig(level=logging.DEBUG,
+                        filename=f"{log_path}/cloudflare_ddns{time_now}.log",
+                        filemode="w",
+                        format="%(asctime)s - %(levelname)s - %(message)s"
+                        )
+        
 def main(name: str, old_ip = False) -> None:
+
+    start_logging()
     
     # Start up desired DDNS Client.
     if os.path.exists(f"{os.path.curdir}/{name}.pickle"):
