@@ -52,12 +52,12 @@ class DDNS_Cache:
         """
         timestamp = datetime.now().isoformat()
 
-        query: Dict = cast(dict, query)
+        query_to_dict: Dict = cast(dict, query)
 
         if service_name not in self.data:
             self.data[service_name] = {}
         self.data[service_name][domain_name] = {
-            'query': query,
+            'query': query_to_dict,
             'timestamp': timestamp
         }
 
