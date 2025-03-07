@@ -3,3 +3,6 @@
 /javascript
 *.pickle
 /.vscode
+/__pycache__
+mypy.ini
+ddns.ini

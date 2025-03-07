@@ -1,0 +1,4 @@
+[cloudflare]
+api_token = YOUR_TOKEN
+zone_id = ZONE_ID
+record_name = example.com
