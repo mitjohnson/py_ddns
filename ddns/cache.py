@@ -1,5 +1,5 @@
 import json, logging
-from typing import Any
+from typing import Any, cast, Dict
 from datetime import datetime
 
 class DDNS_Cache:
@@ -51,6 +51,8 @@ class DDNS_Cache:
         
         """
         timestamp = datetime.now().isoformat()
+
+        query: Dict = cast(dict, query)
 
         if service_name not in self.data:
             self.data[service_name] = {}

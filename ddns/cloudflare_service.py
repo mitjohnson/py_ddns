@@ -3,11 +3,9 @@ from cloudflare.types.dns import RecordResponse
 
 import logging
 from configparser import *
-from typing import Callable, Optional, Any, cast
+from typing import Callable, Optional, Any, cast, Dict
 
-from client import DDNS_Client
-from cache import DDNS_Cache
-from config import Config
+from . import DDNS_Client, DDNS_Cache, Config
 
 class Cloudflare_DDNS(DDNS_Client):
     """DDNS Client for cloudflare"""
@@ -66,7 +64,10 @@ class Cloudflare_DDNS(DDNS_Client):
             raise ValueError("Record name cannot be None")
         
         check_storage = self.storage.get_latest_query('Cloudflare', record_name)
-        if check_storage:
+        
+        if check_storage is not None:
+
+            check_storage = check_storage['query']
             return cast(RecordResponse, check_storage)
         
         result = self.cf_client.dns.records.list(zone_id=self.zone_id).result
@@ -75,7 +76,22 @@ class Cloudflare_DDNS(DDNS_Client):
             }
         
         domain_record = records.get(record_name)
-        self.storage.store_query('Cloudflare', record_name, domain_record)
+
+        if domain_record is None:
+            return domain_record
+
+        if domain_record:
+            normalized_domain_record = {
+                'id': domain_record.id,
+                'name': domain_record.name,
+                'type': domain_record.type,
+                'content': domain_record.content,
+                'ttl': domain_record.ttl,
+                'proxied': domain_record.proxied,
+                'comment': domain_record.comment,
+                'tags': domain_record.tags,
+            }
+        self.storage.store_query('Cloudflare', record_name, normalized_domain_record)
     
         return domain_record
 
@@ -93,16 +109,26 @@ class Cloudflare_DDNS(DDNS_Client):
         if not record_name:
             raise ValueError("Record name cannot be None")
         
-        record: RecordResponse = self._obtain_record(record_name)
+        record = self._obtain_record(record_name)
+
+        if type(record) != RecordResponse:
+            record = cast(RecordResponse, record)
+            print(record)
+
         if not record:
             logging.error(f"No record found for {record_name}.")
             return
         
-        if record.content == ip_address:
+        if isinstance(record, dict):
+            current_ip = record.get('content')  # Use .get() to avoid KeyError
+        else:
+            current_ip = getattr(record, 'content', None)
+        
+        if current_ip == ip_address:
             logging.info(f"No update needed for {record_name}. Current IP is already {ip_address}.")
             return
 
-        response = self.cf_client.dns.records.update(
+        response: RecordResponse = self.cf_client.dns.records.update(
             content = ip_address,
             zone_id = self.zone_id,
             dns_record_id = record.id,
@@ -114,5 +140,15 @@ class Cloudflare_DDNS(DDNS_Client):
         )
         
         if response:
-            self.storage.store_query('Cloudflare', record_name, response)
-            logging.info(f"Updated {record_name} to new IP: {ip_address}.")
+            normalized_response: Dict = {
+                'id': response.id,
+                'name': response.name,
+                'type': response.type,
+                'content': response.content,
+                'ttl': response.ttl,
+                'proxied': response.proxied,
+                'comment': response.comment,
+                'tags': response.tags,
+            }
+        self.storage.store_query('Cloudflare', record_name, normalized_response)
+        logging.info(f"Updated {record_name} to new IP: {ip_address}.")

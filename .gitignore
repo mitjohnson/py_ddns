@@ -1,8 +1,9 @@
 /.mypy_cache
-/venv
+venv
+.venv
 /javascript
 *.pickle
 /.vscode
-/__pycache__
+*__pycache__
 mypy.ini
 ddns.ini
