@@ -5,7 +5,7 @@ import logging
 from typing import Callable, Optional, Any, cast, Dict, Tuple
 from datetime import datetime
 
-from ddns import Config
+from ddns import _get_config
 from .cache import Storage
 from .client import DDNS_Client
 
@@ -15,7 +15,7 @@ class Cloudflare_DDNS(DDNS_Client):
     def __init__(self, api_token: str | None = None, zone_id: str | None = None) -> None:
 
         self.serviceName = 'Cloudflare'
-        self.config = Config()
+        self.config = _get_config()
         self.storage = Storage()
 
         self.zone_id: str = zone_id or self.config.get('Cloudflare', 'zone_id')
@@ -70,7 +70,6 @@ class Cloudflare_DDNS(DDNS_Client):
         check_storage: Optional[Tuple[str, str, datetime]] = self.storage.retrieve_record(record_name)
         
         if check_storage is not None:
-            logging.debug(f"Cloudflare_ddns: Retrieved {check_storage} from database")
             return check_storage 
             
         result = self.cf_client.dns.records.list(zone_id=self.zone_id).result

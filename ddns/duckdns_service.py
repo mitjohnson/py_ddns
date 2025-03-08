@@ -2,7 +2,7 @@ import requests, logging, socket, re
 from typing import Optional, Tuple
 from datetime import datetime
 
-from . import Config
+from ddns import _get_config
 from .client import DDNS_Client
 from .cache import Storage
 
@@ -12,7 +12,7 @@ class DuckDNS(DDNS_Client):
         self.url = "https://www.duckdns.org/update"
         self.serviceName = "Duckdns"
 
-        self.config = Config()
+        self.config = _get_config()
         self.storage = Storage()
         self.token = token or self.config.get(self.serviceName, 'token')
 
@@ -31,10 +31,8 @@ class DuckDNS(DDNS_Client):
         
         current_ip = self.check_duckdns_ip(record_name)
         self.storage.add_service(self.serviceName, self._parse_domain_name(record_name), current_ip)
-        logging.info(f"Duckdns: Added {self.serviceName} to database")
 
-        self._obtain_record(record_name)
-        return None
+        return self.storage.retrieve_record(self._parse_domain_name(record_name))
         
     def _parse_domain_name(self, record_name: str) -> str:
         
@@ -54,8 +52,6 @@ class DuckDNS(DDNS_Client):
         update_status = responses[3]  # UPDATED or NOCHANGE
         
         return status, ipv4, ipv6, update_status
-            
-        raise ValueError("Response format is invalid.")
 
         
     def check_duckdns_ip(self, record_name: str) -> str:
@@ -80,7 +76,7 @@ class DuckDNS(DDNS_Client):
         current_ip = record[0]
 
         if current_ip == ip_address:
-            logging.info(f"Duckddns: No update needed for {record_name}. Current IP is already {ip_address}.")
+            logging.info(f"Duckddns: No update needed for {record_name}.duckdns.org. Current IP is already {ip_address}.")
             return
 
         payload = {
