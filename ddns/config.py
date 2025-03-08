@@ -1,5 +1,5 @@
 from configparser import ConfigParser
-import os
+import logging, os
 
 class Config:
     """
@@ -13,7 +13,7 @@ class Config:
         config_file (str): The path to the configuration file.
     """
 
-    def __init__(self, config_file: str = 'ddns.ini') -> None:
+    def __init__(self, config_file: str = 'py_ddns.ini') -> None:
         """
         Initializes the Config class and loads the configuration file.
 
@@ -26,6 +26,21 @@ class Config:
         self.config = ConfigParser()
         self.config_file = config_file
         self.load_config()
+        self.setup_logging()
+
+    def setup_logging(self) -> None:
+        """
+        Sets up the logging configuration for the application.
+        """
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s', 
+            handlers=[
+                logging.FileHandler('py_ddns.log'),
+                logging.StreamHandler()
+            ]
+        )
+        logging.info("Logging is set up.")
 
     def load_config(self) -> None:
         """

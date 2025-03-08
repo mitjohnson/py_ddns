@@ -6,4 +6,6 @@ venv
 /.vscode
 *__pycache__
 mypy.ini
-ddns.ini
+py_ddns.ini
+*.db
+*.log
