@@ -6,7 +6,10 @@ class DDNS_Client(ABC):
         try:
             response = requests.get('https://api.ipify.org')
             response.raise_for_status()
+
+            logging.info(f"Current IPv4 is {response.text}")
             return response.text
+        
         except requests.exceptions.RequestException as e:
             logging.error(f"Error getting IP: {e}")
             raise
