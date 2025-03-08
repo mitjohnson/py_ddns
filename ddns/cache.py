@@ -1,73 +1,108 @@
-import json, logging
-from typing import Any, cast, Dict
+import sqlite3, logging
+from typing import Optional, Callable, Any, Tuple
 from datetime import datetime
 
-class DDNS_Cache:
-    """ 
-    JSON cache of the latest query for a service.
+class Storage:
+    def __init__(self, filename: str='py_ddns.db'):
+        self.connection = sqlite3.connect(filename)
+        self.cursor = self.connection.cursor()
 
-    Will save data in a standardized format:
+        self.create_tables()
 
-    service_name: {
-        'query': query,
-        'timestamp': timestamp
-    }
+    @staticmethod
+    def handle_sqlite_error(func: Callable) -> Callable:
+        def wrapper(*args, **kwargs) -> Any:
+            
+            try:
 
-    If no filename is provided upon initilization the class will default to 'ddns.json'
+                return func(*args, **kwargs)
+            
+            except sqlite3.Error as err:
+                logging.error(f"SQLite Error: {err}")
+                raise
+            except sqlite3.DatabaseError as err:
+                logging.error(f"SQLite Database Error: {err}")
+                raise
+            except sqlite3.DataError as err:
+                logging.error(f"SQLite Data Error: {err}")
+                raise
+            except sqlite3.IntegrityError as err:
+                logging.error(f"SQLite Integrity Error: {err}")
+                raise
 
-    """
-
-    def __init__(self, filename: str='ddns.json'):
-
-        self.filename = filename
-        self.data: dict = self.load_data()
-
-    def load_data(self) -> dict:
-        """ Loads data from JSON file if present, otherwise returns emply dict """
-        try:
-            with open(self.filename, 'r') as file:
-                return json.load(file)
+        return wrapper
         
-        except FileNotFoundError:
-
-            logging.warning("No json file detected.")
-            return {}
-
-    def save_data(self) -> None:
-
-        with open(self.filename, 'w') as file:
-            json.dump(self.data, file, indent=2)
-
-    def store_query(self, service_name: str, domain_name: str, query: Any) -> None:
-        """ 
-        Stores data in a JSON file in the following format: 
-
-        [service_name] = {
-            'domain_name': {
-                'query': query,
-                'timestamp': timestamp
-            } 
-        }
+    @handle_sqlite_error
+    def create_tables(self) -> None:
         
+        sql = """
+        CREATE TABLE IF NOT EXISTS domains (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            service TEXT NOT NULL,
+            domain_name TEXT NOT NULL UNIQUE,
+            record_id TEXT DEFAULT NULL,
+            current_ip TEXT NOT NULL,
+            last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(service, domain_name)
+        )
         """
-        timestamp = datetime.now().isoformat()
+        self.cursor.execute(sql)
+        self.connection.commit()
+        logging.debug(f"Successfully created domains table.")
 
-        query_to_dict: Dict = cast(dict, query)
+    @handle_sqlite_error
+    def drop_tables(self) -> None:
 
-        if service_name not in self.data:
-            self.data[service_name] = {}
-        self.data[service_name][domain_name] = {
-            'query': query_to_dict,
-            'timestamp': timestamp
-        }
+        logging.warning(f"one or more database tables have been requested to be dropped.")
 
-        self.save_data()
-
-
-    def get_latest_query(self, service_name: str, domain_name: str) -> dict | None:
-        """ Returns the last query made by the specified service. """
+        sql = """
+        DROP TABLE IF EXISTS domains;
+        """
+        self.cursor.execute(sql)
+        self.connection.commit()
         
-        if service_name in self.data and domain_name in self.data[service_name]:
-            return self.data[service_name][domain_name]
-        else:
+        logging.info("domains table has sucessfully been dropped.")
+
+    @handle_sqlite_error
+    def add_service(self, service_name: str, domain_name: str, current_ip: str, record_id: Optional[str] = None) -> None:
+        
+        sql = """
+        INSERT INTO domains(service, domain_name, current_ip, record_id)
+        VALUES(?, ?, ?, ?)
+        """
+        self.cursor.execute(sql, (service_name, domain_name, current_ip, record_id))
+        self.connection.commit()
+        logging.info(f"Sucessfully added {service_name} to database.")
+
+    @handle_sqlite_error
+    def update_ip(self, service_name: str, domain_name: str, current_ip: str) -> None:
+
+        sql = """
+        UPDATE domains
+        SET service = COALESCE(?, service),
+            current_ip = COALESCE(?, current_ip),
+            last_updated = CURRENT_TIMESTAMP
+         WHERE domain_name = ? 
+        """
+        self.cursor.execute(sql, (service_name, current_ip, domain_name))
+        self.connection.commit()
+        logging.info(f"Updated {domain_name} on {service_name} to {current_ip}")
+
+    @handle_sqlite_error
+    def retrieve_record(self, domain_name: str) -> Optional[Tuple[str, datetime, str]]:
+
+        sql = """
+        SELECT current_ip, last_updated, record_id FROM domains
+        WHERE domain_name = ?
+        """
+        self.cursor.execute(sql, (domain_name,))
+        response = self.cursor.fetchone()
+
+        if not response:
             return None
+
+        ip: str = response[0]
+        last_updated: datetime = response[1]
+        record_id: str = response[2]
+
+        return (ip, last_updated, record_id)

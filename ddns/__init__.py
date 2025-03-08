@@ -1,11 +1,11 @@
-from .client import DDNS_Client
-from .cache import DDNS_Cache
 from .config import Config
+from .cache import Storage
 from .cloudflare_service import Cloudflare_DDNS
+from .duckdns_service import DuckDNS
 
 __all__ = [
-    'DDNS_Client',
     'Cloudflare_DDNS',
-    'DDNS_Cache',
-    'Config'
+    'Config',
+    'Storage',
+    'DuckDns',
 ]
