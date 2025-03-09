@@ -24,7 +24,7 @@ class CloudflareDNS(DDNSClient):
     for domains hosted on Cloudflare.
     """
 
-    def __init__(self, api_token: str | None = None, zone_id: str | None = None) -> None:
+    def __init__(self, api_token: Optional[str] = None, zone_id: Optional[str] = None) -> None:
         logging.debug("CloudFlare DNS: Initializing Cloudflare_DDNS client.")
         self.service_name = 'Cloudflare'
         self.config = _get_config()
