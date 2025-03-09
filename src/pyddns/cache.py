@@ -1,4 +1,12 @@
-import sqlite3, logging
+"""
+Storage Module
+
+This module provides a class for managing SQLite database operations specifically
+for Dynamic DNS (DDNS) services. The `Storage` class handles the creation,
+updating, and retrieval of domain records in a SQLite database.
+"""
+import sqlite3
+import logging
 from typing import Optional, Callable, Any, Tuple
 from datetime import datetime
 
@@ -18,30 +26,31 @@ class Storage:
 
     @staticmethod
     def handle_sqlite_error(func: Callable) -> Callable:
+        """ Decorator utilized to handle all errors invlovling the SQLite Database."""
         def wrapper(*args, **kwargs) -> Any:
-            
+
             try:
 
                 return func(*args, **kwargs)
-            
+
             except sqlite3.Error as err:
-                logging.error(f"SQLite Error: {err}")
+                logging.error("SQLite Error: %s", err)
                 raise
             except sqlite3.DatabaseError as err:
-                logging.error(f"SQLite Database Error: {err}")
+                logging.error("SQLite Database Error: %s", err)
                 raise
             except sqlite3.DataError as err:
-                logging.error(f"SQLite Data Error: {err}")
+                logging.error("SQLite Data Error: %s", err)
                 raise
             except sqlite3.IntegrityError as err:
-                logging.error(f"SQLite Integrity Error: {err}")
+                logging.error("SQLite Integrity Error: %s", err)
                 raise
-
         return wrapper
-        
+
     @handle_sqlite_error
     def create_tables(self) -> None:
-        
+        """ Method to create all SQLite tables utilized by pyddns """
+
         sql = """
         CREATE TABLE IF NOT EXISTS domains (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,40 +59,48 @@ class Storage:
             record_id TEXT DEFAULT NULL,
             current_ip TEXT NOT NULL,
             last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(service, domain_name)
         )
         """
         self.cursor.execute(sql)
         self.connection.commit()
-        logging.debug(f"SQLite: Successfully verified that the domains table is present.")
+        logging.debug("SQLite: Successfully verified that the domains table is present.")
 
     @handle_sqlite_error
     def drop_tables(self) -> None:
+        """ Method to drop all SQLite tables utilized by pyddns """
 
-        logging.warning(f"one or more database tables have been requested to be dropped.")
+        logging.warning("one or more database tables have been requested to be dropped.")
 
         sql = """
         DROP TABLE IF EXISTS domains;
         """
         self.cursor.execute(sql)
         self.connection.commit()
-        
+
         logging.info("domains table has sucessfully been dropped.")
 
     @handle_sqlite_error
-    def add_service(self, service_name: str, domain_name: str, current_ip: str, record_id: Optional[str] = None) -> None:
-        
+    def add_service(
+        self, service_name: str, domain_name: str, current_ip: str, record_id: Optional[str] = None
+        ) -> None:
+        """ Adds a service to the SQLite database and sets a created_at timestamp """
+
         sql = """
         INSERT INTO domains(service, domain_name, current_ip, record_id)
         VALUES(?, ?, ?, ?)
         """
         self.cursor.execute(sql, (service_name, domain_name, current_ip, record_id))
         self.connection.commit()
-        logging.debug(f"SQLite: Adding service: {service_name}, Domain: {domain_name}, IP: {current_ip}")
-        logging.info(f"SQLite: Sucessfully added {service_name} to database.")
+        logging.debug(
+            "SQLite: Adding service: %s, Domain: %s, IP: %s", service_name, domain_name, current_ip
+        )
+        logging.info("SQLite: Sucessfully added %s to database.", service_name)
 
     @handle_sqlite_error
     def update_ip(self, service_name: str, domain_name: str, current_ip: str) -> None:
+        """ Updated the domain name's IP address in the SQLite database. """
 
         sql = """
         UPDATE domains
@@ -94,10 +111,11 @@ class Storage:
         """
         self.cursor.execute(sql, (service_name, current_ip, domain_name))
         self.connection.commit()
-        logging.info(f"SQLite: Updated {domain_name} on {service_name} to {current_ip}")
+        logging.info("SQLite: Updated %s on %s to %s", domain_name, service_name, current_ip)
 
     @handle_sqlite_error
     def retrieve_record(self, domain_name: str) -> Optional[Tuple[str, datetime, str]]:
+        """ Retrieves IP adress, last_updated, and record_id from SQLite databse if present. """
 
         sql = """
         SELECT current_ip, last_updated, record_id FROM domains

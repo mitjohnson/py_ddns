@@ -1,4 +1,14 @@
+"""
+Setup.py
+
+Build proccess for package.
+"""
 from setuptools import setup, find_packages
+
+def readme() -> str:
+    """ Gets readme """
+    with open('README.md', 'r', encoding='utf-8') as f:
+        return f.read()
 
 setup(
     name = 'pyddns',
@@ -7,7 +17,7 @@ setup(
     license= 'MIT',
     author_email = '91237766+mitjohnson@users.noreply.github.com.',
     description = 'Simple programmable DDNS client to automate IP adress changes.',
-    long_description = open('README.md').read(),
+    long_description = readme(),
     long_description_content_type = 'text/markdown',
     url = 'https://github.com/mitjohnson/py_ddns',
     package_dir={'': 'src'},

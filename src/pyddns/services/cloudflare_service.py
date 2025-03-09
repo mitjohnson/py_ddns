@@ -1,14 +1,21 @@
+"""
+CloudflareDNS Module
+
+This module provides a Dynamic DNS (DDNS) client for managing DNS records
+on Cloudflare. It allows users to update DNS records automatically based on
+the current IP address, leveraging the Cloudflare API.
+"""
+import logging
+from typing import Callable, Optional, Any, Tuple
+from datetime import datetime
+
 from cloudflare import Cloudflare, NOT_GIVEN, APIConnectionError, APIStatusError, RateLimitError
 from cloudflare.types.dns import RecordResponse
 
-import logging
-from typing import Callable, Optional, Any, cast, Dict, Tuple
-from datetime import datetime
-
 from pyddns.utils import _get_config, _get_storage
-from pyddns.client import DDNS_Client
+from pyddns.client import DDNSClient
 
-class CloudflareDNS(DDNS_Client):
+class CloudflareDNS(DDNSClient):
     """
     DDNS Client for Cloudflare.
 
@@ -18,16 +25,16 @@ class CloudflareDNS(DDNS_Client):
 
     def __init__(self, api_token: str | None = None, zone_id: str | None = None) -> None:
         logging.debug("CloudFlare DNS: Initializing Cloudflare_DDNS client.")
-        self.serviceName = 'Cloudflare'
+        self.service_name = 'Cloudflare'
         self.config = _get_config()
         self.storage = _get_storage()
 
-        self.zone_id: str = zone_id or self.config.get(self.serviceName, 'zone_id')
-        self.api_token: str = api_token or self.config.get(self.serviceName, 'api_token')
+        self.zone_id: str = zone_id or self.config.get(self.service_name, 'zone_id')
+        self.api_token: str = api_token or self.config.get(self.service_name, 'api_token')
 
         if not self.zone_id or not self.api_token:
-            raise ValueError(f"CloudFlare DNS: API token and Zone ID must be provided.")
-        
+            raise ValueError("CloudFlare DNS: API token and Zone ID must be provided.")
+
         self.cf_client = Cloudflare( api_token = self.api_token )
 
     @staticmethod
@@ -43,24 +50,23 @@ class CloudflareDNS(DDNS_Client):
             try:
 
                 return func(*args, **kwargs)
-            
+
             except APIConnectionError as e:
                 error_message = f"The server could not be reached: {e.__cause__}"
-                logging.error(f"CloudFlare DNS: {error_message}")
+                logging.error("CloudFlare DNS: %s", error_message)
                 raise
-            except RateLimitError as e:
+            except RateLimitError:
                 error_message = "A 429 status code was received; we should back off a bit."
-                logging.warning(f"CloudFlare DNS: {error_message}")
+                logging.warning("CloudFlare DNS: %s", error_message)
                 raise
             except APIStatusError as e:
-                error_message = f"Another non-200-range status code was received, Status Code: {e.status_code}, Response: {e.response}"
-                logging.error(f"CloudFlare DNS: {error_message}")
+                error_message = f"Non-200-range status code: {e.status_code}, Response:{e.response}"
+                logging.error("CloudFlare DNS: %s", error_message)
                 raise
-
         return wrapper
-                   
+
     @cf_error_handler
-    def _obtain_record(self, record_name: str) -> Optional[Tuple[str, str, datetime]]:
+    def _obtain_record(self, record_name: str) -> Optional[Tuple[str, datetime, Optional[str]]]:
         """
         Obtains requested record by name, ex: example.com
         
@@ -68,33 +74,34 @@ class CloudflareDNS(DDNS_Client):
         """
 
         if record_name is None:
-            logging.error(f"CloudFlare DNS: In _obtain_record: Record_name not provided.")
+            logging.error("CloudFlare DNS: In _obtain_record: Record_name not provided.")
             raise ValueError("CloudFlare DNS: Record name cannot be None")
-        
-        logging.debug(f"CloudFlare DNS: Obtaining {record_name} from the database.")
-        check_storage: Optional[Tuple[str, str, datetime]] = self.storage.retrieve_record(record_name)
-        
+
+        logging.debug("CloudFlare DNS: Obtaining %s from the database.", record_name)
+        check_storage: Tuple[str, datetime, str] = self.storage.retrieve_record(record_name)
+
         if check_storage is not None:
-            logging.debug(f"CloudFlare DNS: Retrieved {check_storage} from database.")
-            return check_storage 
-            
+            logging.debug("CloudFlare DNS: Retrieved %s from database.", check_storage)
+            return check_storage
+
         result = self.cf_client.dns.records.list(zone_id=self.zone_id).result
-        logging.debug(f"CloudFlare DNS: Retrieved from cloudflare: {result}")
+        logging.debug("CloudFlare DNS: Retrieved from cloudflare: %s", result)
         records: dict[str, RecordResponse] = {
             record.name or 'domain': record for record in result
             }
-        
+
         domain_record = records.get(record_name)
 
         if domain_record is None:
             logging.debug("CloudFlare DNS: Domain Record is None")
             return domain_record
 
-        self.storage.add_service(self.serviceName, domain_record.name, domain_record.content, domain_record.id)
+        self.storage.add_service(
+            self.service_name, domain_record.name, domain_record.content, domain_record.id
+        )
         logging.info("CloudFlare DNS:  Added Service to database")
         return self.storage.retrieve_record(record_name)
 
-                
     @cf_error_handler
     def update_dns(self, ip_address: str, record_name: Optional[str] = None) -> None:
 
@@ -103,26 +110,27 @@ class CloudflareDNS(DDNS_Client):
 
         Automatically infers record_name if it is defined in the ddns.ini file.
         """
-        record_name = record_name or self.config.get(self.serviceName,'record_name')
+        record_name = record_name or self.config.get(self.service_name,'record_name')
 
         if not record_name:
             raise ValueError("CloudFlare DNS: Record name cannot be None")
-        
-        logging.debug(f"CloudFlare DNS: Preparing to uppdate {record_name} with IP:")
 
-        
+        logging.debug("CloudFlare DNS: Preparing to uppdate %s with IP:", record_name)
+
         record: Optional[Tuple[str, datetime, str]] = self._obtain_record(record_name)
 
         if not record:
-            logging.error(f"CloudFlare DNS: No record found for {record_name}.")
+            logging.error("CloudFlare DNS: No record found for %s.", record_name)
             return
-        
+
         current_ip: str = record[0]
-        ip_timestamp: datetime = record[1]
         record_id: str = record[2]
-        
+
         if current_ip == ip_address:
-            logging.info(f"CloudFlare DNS: No update needed for {record_name} - Current IP is already {ip_address}.")
+            logging.info(
+                "CloudFlare DNS: No update needed for %s - IP is already %s.",
+                record_name, ip_address
+            )
             return
 
         response = self.cf_client.dns.records.update(
@@ -132,10 +140,10 @@ class CloudflareDNS(DDNS_Client):
             dns_record_id = record_id,
             comment= f"Updated on {datetime.now()} by py_ddns.",
         )
-        
+
         if response is None:
             logging.error("CloudFlare DNS: No response recienved from cloudflare.")
             return
-           
-        self.storage.update_ip(self.serviceName, record_name, response.content)
-        logging.info(f"CloudFlare DNS: Updated {record_name} to new IP: {ip_address}.")
+
+        self.storage.update_ip(self.service_name, record_name, response.content)
+        logging.info("CloudFlare DNS: Updated %s to new IP: %s.", record_name, ip_address)
