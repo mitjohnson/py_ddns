@@ -1,7 +1,7 @@
 # Dynamic DNS Client for Cloudflare
 
 ## Overview
-This Dynamic DNS (DDNS) client allows users to automate the process of IP adress changes.
+This Dynamic DNS (DDNS) client allows users to automate the process of A record changes.
 
 ## Features
 - **Dynamic IP Management:** Automatically detects changes to your public IP and updates the corresponding DNS records in real-time.
