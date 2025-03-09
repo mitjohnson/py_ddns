@@ -1,0 +1,10 @@
+[Cloudflare]
+api_token = YOUR_API_TOKEN
+zone_id = YOUR_ZONE_ID
+record_name = DOMAIN_TO_UPDATE
+[Duckdns]
+token = YOUR_API_TOKEN
+domains = DOMAIN_TO_UPDATE
+[Client_settings]
+## Affects all services
+logging_level = INFO OR DEBUG

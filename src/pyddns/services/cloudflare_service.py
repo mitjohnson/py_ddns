@@ -5,8 +5,8 @@ import logging
 from typing import Callable, Optional, Any, cast, Dict, Tuple
 from datetime import datetime
 
-from ddns import _get_config, _get_storage
-from ddns.client import DDNS_Client
+from pyddns.utils import _get_config, _get_storage
+from pyddns.client import DDNS_Client
 
 class CloudflareDNS(DDNS_Client):
     """

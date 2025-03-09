@@ -2,8 +2,8 @@ import requests, logging, socket, re
 from typing import Optional, Tuple
 from datetime import datetime
 
-from ddns import _get_config, _get_storage
-from ddns.client import DDNS_Client
+from pyddns.utils import _get_config, _get_storage
+from pyddns.client import DDNS_Client
 
 class DuckDNS(DDNS_Client):
     """

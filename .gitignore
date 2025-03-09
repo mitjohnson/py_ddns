@@ -9,3 +9,6 @@ mypy.ini
 py_ddns.ini
 *.db
 *.log
+build/
+dist/
+*.egg-info

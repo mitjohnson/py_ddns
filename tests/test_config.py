@@ -1,6 +1,6 @@
 import unittest, os
 
-from ddns.config import Config, ConfigParser
+from ddns.src.config import Config, ConfigParser
 class TestConfig(unittest.TestCase):
     def setUp(self):
         """Create a temporary configuration file for testing."""

@@ -13,7 +13,7 @@ class DDNS_Client(ABC):
         ABSTRACT: update_dns(ip_address: str, record_name: str) -> None: Updates the DNS record with the specified IP address."
         """
     
-    def get_ip(self) -> str:
+    def get_ipv4(self) -> str:
 
         logging.debug("Attempting to retrieve current public IP address.")
         try:

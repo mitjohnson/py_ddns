@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, Mock
 import logging, requests
-from ddns import DDNS_Client
+from ddns.src.client import DDNS_Client
 
 class TestDDNSClient(DDNS_Client):
     def update_dns(self, ip_address: str, record_name: str) -> None:
