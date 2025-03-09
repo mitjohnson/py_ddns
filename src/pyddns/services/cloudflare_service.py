@@ -6,6 +6,7 @@ on Cloudflare. It allows users to update DNS records automatically based on
 the current IP address, leveraging the Cloudflare API.
 """
 import logging
+import socket
 from typing import Callable, Optional, Any, Tuple
 from datetime import datetime
 
@@ -90,6 +91,7 @@ class CloudflareDNS(DDNSClient):
             record.name or 'domain': record for record in result
             }
 
+
         domain_record = records.get(record_name)
 
         if domain_record is None:
@@ -103,19 +105,53 @@ class CloudflareDNS(DDNSClient):
         return self.storage.retrieve_record(record_name)
 
     @cf_error_handler
-    def update_dns(self, ip_address: str, record_name: Optional[str] = None) -> None:
-
-        """ 
-        Updates IP address for specified record 
-
-        Automatically infers record_name if it is defined in the ddns.ini file.
+    def check_cloudflare_ip(self, record_name: str) -> Optional[str]:
         """
-        record_name = record_name or self.config.get(self.service_name,'record_name')
+        Checks the A record IP address in cloudflare utilizing the API
+
+        This is recomended if you have a proxied connection.
+        """
+
+        if record_name is None:
+            logging.error("CloudFlare DNS: In _obtain_record: Record_name not provided.")
+            raise ValueError("CloudFlare DNS: Record name cannot be None")
+
+        response = self.storage.retrieve_record(record_name)
+
+        if not response:
+            response = self._obtain_record(record_name)
+
+        record_id = response[2]
+        api_res = self.cf_client.dns.records.get(zone_id=self.zone_id, dns_record_id=record_id)
+
+        if not api_res:
+            logging.error("Cloudflare DNS: API call failed.")
+            return None
+
+        return api_res.content
+
+    def cloudflare_dns_lookup(self, record_name: str) -> str:
+        """
+        Performs a DNS lookup for the record name for Cloudflare.
+
+        This will not return the correct IP if you have a proxied connection.
+        """
+        logging.debug("CloudFlare DNS: Performing DNS lookup for %s", record_name)
+        return socket.gethostbyname(record_name)
+
+    def check_and_update_dns(self, record_name: Optional[str] = None) -> None:
+        """
+        Compares the actual Cloudflare A record with the local database record. 
+        If they are different, updates Cloudflare with the current IP address.
+        """
+        record_name = record_name or self.config.get(self.service_name, 'record_name')
 
         if not record_name:
             raise ValueError("CloudFlare DNS: Record name cannot be None")
 
-        logging.debug("CloudFlare DNS: Preparing to uppdate %s with IP:", record_name)
+        logging.debug("CloudFlare DNS: Checking current IP for %s", record_name)
+        cloudflare_ip = self.check_cloudflare_ip(record_name)
+        logging.debug("CloudFlare DNS: Current IP for %s is %s", record_name, cloudflare_ip)
 
         record: Optional[Tuple[str, datetime, str]] = self._obtain_record(record_name)
 
@@ -123,26 +159,66 @@ class CloudflareDNS(DDNSClient):
             logging.error("CloudFlare DNS: No record found for %s.", record_name)
             return
 
-        current_ip: str = record[0]
-        record_id: str = record[2]
+        current_ip = self.get_ipv4()
+        db_ip = record[0]
+        logging.debug("CloudFlare DNS: IP from database is %s", db_ip)
 
-        if current_ip == ip_address:
+        if current_ip != db_ip:
             logging.info(
-                "CloudFlare DNS: No update needed for %s - IP is already %s.",
-                record_name, ip_address
+                "CloudFlare DNS: Local IP has changed from %s to %s, updating Cloudflare.",
+                db_ip, current_ip
             )
+            self.update_dns(current_ip, record_name)
             return
 
+        if db_ip != cloudflare_ip:
+            logging.info(
+                "CloudFlare DNS: A record has changed from %s to %s for %s, updating Cloudflare",
+                db_ip, cloudflare_ip, record_name
+            )
+            self.update_dns(current_ip, record_name)
+            return
+
+        logging.info(
+            "CloudFlare DNS: No update needed for %s - IP is still %s",
+            record_name, db_ip
+        )
+        return
+
+    @cf_error_handler
+    def update_dns(self, ip_address: str, record_name: Optional[str] = None) -> None:
+        """ 
+        Updates IP address for specified record 
+        Automatically infers record_name if it is defined in the ddns.ini file.
+        """
+        record_name = record_name or self.config.get(self.service_name, 'record_name')
+
+        if not record_name:
+            raise ValueError("CloudFlare DNS: Record name cannot be None")
+
+        logging.info("CloudFlare DNS: Preparing to update %s with IP: %s", record_name, ip_address)
+
+        record: Optional[Tuple[str, datetime, str]] = self._obtain_record(record_name)
+
+        if not record:
+            logging.error("CloudFlare DNS: No record found for %s.", record_name)
+            return
+
+        record_id: str = record[2]
+
+        comment = f"Updated on {datetime.now()} by py_ddns."
         response = self.cf_client.dns.records.update(
-            content = ip_address,
-            zone_id = self.zone_id,
-            name = record_name or NOT_GIVEN,
-            dns_record_id = record_id,
-            comment= f"Updated on {datetime.now()} by py_ddns.",
+            content=ip_address,
+            zone_id=self.zone_id,
+            type="A",
+            proxied=True,
+            name=record_name or NOT_GIVEN,
+            dns_record_id=record_id,
+            comment=comment,
         )
 
         if response is None:
-            logging.error("CloudFlare DNS: No response recienved from cloudflare.")
+            logging.error("CloudFlare DNS: No response received from Cloudflare.")
             return
 
         self.storage.update_ip(self.service_name, record_name, response.content)

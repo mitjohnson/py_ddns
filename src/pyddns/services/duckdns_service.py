@@ -74,8 +74,8 @@ class DuckDNS(DDNSClient):
 
         if record_name.endswith('.duckdns.org'):
             return record_name[:-len('.duckdns.org')]
-        else:
-            return record_name
+
+        return record_name
 
     def _parse_api_response(self, response: str) -> Tuple[str, Optional[str], Optional[str], str]:
         """
@@ -96,40 +96,61 @@ class DuckDNS(DDNSClient):
 
     def check_duckdns_ip(self, record_name: str) -> str:
         """
-        Checks the current IP address for DuckDNS
+        Performs a DNS lookup for record name for DuckDNS
         """
         logging.debug("DuckDNS: Performing DNS lookup for %s", record_name)
         return socket.gethostbyname(f"{self._parse_domain_name(record_name)}.duckdns.org")
 
-    def update_dns(self, ip_address: str, record_name: Optional[str] = None) -> None:
+    def check_and_update_dns(self, record_name: Optional[str] = None) -> None:
         """
-        Updates the IP address for DuckDNS, and then updates the IP adress in the database.
+        Compares the actual DuckDNS A record with the local database record. 
+        If they are different, updates DuckDNS with the current IP address.
         """
-
         record_name = record_name or self.config.get(self.service_name, 'domains')
         record_name = self._parse_domain_name(record_name)
 
         if not record_name:
             raise ValueError("DuckDNS: Record name cannot be None")
 
-        logging.debug(
-            "DuckDNS: Preparing to update DuckDNS for %s.duckdns.org with IP: %s",
-            record_name, ip_address
-        )
+        logging.debug("DuckDNS: Checking current IP for %s", record_name)
+        duck_ip = self.check_duckdns_ip(record_name)
+        logging.debug("DuckDNS: Current IP for %s is %s", record_name, duck_ip)
+
         record = self._obtain_record(record_name)
 
         if not record:
             logging.error("DuckDNS: No record found for %s.", record_name)
             return
 
-        current_ip = record[0]
+        current_ip = self.get_ipv4()
+        db_ip = record[0]
+        logging.debug("DuckDNS: IP from database is %s", db_ip)
 
-        if current_ip == ip_address:
-            logging.info(
-                "DuckDNS: No update needed for %s.duckdns.org - Current IP is already %s.",
-                record_name, ip_address
-            )
+        if current_ip != db_ip:
+            logging.info("IP has changed from %s to %s, updating DuckDNS.", current_ip, db_ip)
+            self.update_dns(current_ip, record_name)
             return
+
+        if db_ip != duck_ip:
+            logging.info(
+                "DuckDNS: A record has changed from %s to %s for %s, updating DuckDNS",
+                db_ip, duck_ip, record_name
+            )
+            self.update_dns(current_ip, record_name)
+            return
+
+        logging.info("DuckDNS: No update needed for %s - IP is still %s", record_name, db_ip)
+
+    def update_dns(self, ip_address: str, record_name: Optional[str] = None) -> None:
+        """
+        Updates the IP address for DuckDNS in the database.
+        This method assumes that the IP address has already been verified to be different.
+        """
+        record_name = record_name or self.config.get(self.service_name, 'domains')
+        record_name = self._parse_domain_name(record_name)
+
+        if not record_name:
+            raise ValueError("DuckDNS: Record name cannot be None")
 
         payload = {
             "domains": f"{record_name}.duckdns.org",
@@ -137,17 +158,17 @@ class DuckDNS(DDNSClient):
             "ip": ip_address,
             "verbose": 'true'
         }
-        try:
 
+        try:
             logging.debug("DuckDNS: Making API call to %s with parameters %s", self.url, payload)
-            response = requests.get(self.url, params = payload, timeout=10)
+            response = requests.get(self.url, params=payload, timeout=10)
             response.raise_for_status()
 
             ipv4 = self._parse_api_response(response.text)[1]
-            logging.debug("DuckDNS: Recieved %s from DuckDNS API.", response.text)
+            logging.debug("DuckDNS: Received %s from DuckDNS API.", response.text)
 
             self.storage.update_ip(self.service_name, self._parse_domain_name(record_name), ipv4)
-            logging.info("DuckDNS:  Updated %s to %s.", ip_address, ipv4)
+            logging.info("DuckDNS: Updated %s to %s.", ip_address, ipv4)
 
         except requests.HTTPError as err:
             logging.error("DuckDNS: API Call %s", err)
@@ -158,4 +179,3 @@ class DuckDNS(DDNSClient):
         except Exception as err:
             logging.error("DuckDNS: API Call %s", err)
             raise
-    

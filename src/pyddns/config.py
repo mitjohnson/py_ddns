@@ -79,6 +79,4 @@ class Config:
         if self.config.has_option(section, option):
             return self.config.get(section, option)
 
-        else:
-
-            raise KeyError(f"Option '{option}' not found in section '{section}'.")
+        raise KeyError(f"Option '{option}' not found in section '{section}'.")
