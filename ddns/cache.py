@@ -3,6 +3,13 @@ from typing import Optional, Callable, Any, Tuple
 from datetime import datetime
 
 class Storage:
+    """
+    A class to manage SQLite database operations for DDNS services.
+
+    This class handles the creation, updating, and retrieval of domain records
+    in a SQLite database.
+    """
+
     def __init__(self, filename: str='py_ddns.db'):
         self.connection = sqlite3.connect(filename)
         self.cursor = self.connection.cursor()
@@ -48,7 +55,7 @@ class Storage:
         """
         self.cursor.execute(sql)
         self.connection.commit()
-        logging.debug(f"Successfully created domains table.")
+        logging.debug(f"SQLite: Successfully verified that the domains table is present.")
 
     @handle_sqlite_error
     def drop_tables(self) -> None:
@@ -72,7 +79,8 @@ class Storage:
         """
         self.cursor.execute(sql, (service_name, domain_name, current_ip, record_id))
         self.connection.commit()
-        logging.info(f"Sucessfully added {service_name} to database.")
+        logging.debug(f"SQLite: Adding service: {service_name}, Domain: {domain_name}, IP: {current_ip}")
+        logging.info(f"SQLite: Sucessfully added {service_name} to database.")
 
     @handle_sqlite_error
     def update_ip(self, service_name: str, domain_name: str, current_ip: str) -> None:
@@ -86,7 +94,7 @@ class Storage:
         """
         self.cursor.execute(sql, (service_name, current_ip, domain_name))
         self.connection.commit()
-        logging.info(f"Updated {domain_name} on {service_name} to {current_ip}")
+        logging.info(f"SQLite: Updated {domain_name} on {service_name} to {current_ip}")
 
     @handle_sqlite_error
     def retrieve_record(self, domain_name: str) -> Optional[Tuple[str, datetime, str]]:
