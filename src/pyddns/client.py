@@ -6,10 +6,12 @@ The `DDNS_Client` class serves as a blueprint for implementing specific DDNS
 clients that interact with various DNS service providers. It includes methods
 for obtaining the current public IP address and updating DNS records.
 """
+
 from abc import ABC, abstractmethod
 import logging
 
 import requests
+
 
 class DDNSClient(ABC):
     """
@@ -21,14 +23,14 @@ class DDNSClient(ABC):
     Methods:
         INHERITED: get_ip() -> str: Retrieves the current public IP address.
         ABSTRACT: update_dns(ip_address: str, record_name: str) -> None"
-        """
+    """
 
     def get_ipv4(self) -> str:
-        """ Obtains current IPv4 adress and returns as a str. """
+        """Obtains current IPv4 adress and returns as a str."""
 
         logging.debug("Attempting to retrieve current public IP address.")
         try:
-            response = requests.get('https://api.ipify.org', timeout=10)
+            response = requests.get("https://api.ipify.org", timeout=10)
             response.raise_for_status()
 
             logging.info("Current IPv4 is %s", response.text)
@@ -40,4 +42,6 @@ class DDNSClient(ABC):
 
     @abstractmethod
     def update_dns(self, ip_address: str, record_name: str) -> None:
-        """ Abstract Method to force all clients to have an update_dns method. """
+        """
+        Abstract Method to force all clients to have an update_dns method.
+        """

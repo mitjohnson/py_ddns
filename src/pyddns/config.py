@@ -7,9 +7,11 @@ These functions ensure that there is a single instance of each class throughout
 the application, promoting efficient resource management and consistent access
 to configuration settings and data storage.
 """
+
 from configparser import ConfigParser
 import logging
 import os
+
 
 class Config:
     """
@@ -19,7 +21,7 @@ class Config:
     and provides methods to access the settings.
     """
 
-    def __init__(self, config_file: str = 'py_ddns.ini') -> None:
+    def __init__(self, config_file: str = "py_ddns.ini") -> None:
         """
         Initializes the Config class and loads the configuration file.
         """
@@ -32,25 +34,26 @@ class Config:
         """
         Sets up the logging configuration for the application.
         """
-        logging_level = self.config.get('Client_settings', 'logging_level')
+        logging_level = self.config.get("Client_settings", "logging_level")
 
-        if logging_level.lower().strip() not in ['info', 'debug']:
+        if logging_level.lower().strip() not in ["info", "debug"]:
             raise ValueError(
-                f"Invalid logging level.  Expected info or logging, got {logging_level}"
+                "Invalid logging level."
+                f"Expected info or logging, got {logging_level}"
             )
 
-        if logging_level.lower() == 'debug':
+        if logging_level.lower() == "debug":
             level = logging.DEBUG
         else:
             level = logging.INFO
 
         logging.basicConfig(
-            level= level,
-            format='%(asctime)s - %(levelname)s - %(message)s',
+            level=level,
+            format="%(asctime)s - %(levelname)s - %(message)s",
             handlers=[
-                logging.FileHandler('py_ddns.log'),
-                logging.StreamHandler()
-            ]
+                logging.FileHandler("py_ddns.log"),
+                logging.StreamHandler(),
+            ],
         )
         logging.info("Logging is set up, level = %s", logging_level.upper())
 
@@ -60,7 +63,9 @@ class Config:
         """
 
         if not os.path.exists(self.config_file):
-            raise FileNotFoundError(f"Configuration file '{self.config_file}' not found.")
+            raise FileNotFoundError(
+                f"Configuration file '{self.config_file}' not found."
+            )
 
         self.config.read(self.config_file)
 

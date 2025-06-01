@@ -13,12 +13,15 @@ from pyddns.cache import Storage
 
 root_config = Config()
 
+
 def _get_config() -> Config:
-    """ returns the singleton config instance. """
+    """returns the singleton config instance."""
     return root_config
+
 
 root_storage = Storage()
 
+
 def _get_storage() -> Storage:
-    """ returns the singleton storage instance. """
+    """returns the singleton storage instance."""
     return root_storage
