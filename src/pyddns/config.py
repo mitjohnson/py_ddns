@@ -1,8 +1,8 @@
 """
-Configuration and Storage Utilities
+Configuration Utilities
 
 This module provides utility functions to access singleton instances of
-the `Config` and `Storage` classes used in the Dynamic DNS (DDNS) application.
+the `Config` classes used in the Dynamic DNS (DDNS) application.
 These functions ensure that there is a single instance of each class throughout
 the application, promoting efficient resource management and consistent access
 to configuration settings and data storage.
@@ -17,19 +17,19 @@ from typing import Optional
 
 
 class Config:
-    _instance: Optional["Config"] = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super(Config, cls).__new__(cls)
-        return cls._instance
-
     """
     A class to manage configuration settings using ConfigParser.
 
     This class loads configuration settings from a specified INI file
     and provides methods to access the settings.
     """
+
+    _instance: Optional["Config"] = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(Config, cls).__new__(cls)
+        return cls._instance
 
     def __init__(self, config_file: str = "py_ddns.ini") -> None:
         """

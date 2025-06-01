@@ -13,19 +13,19 @@ from datetime import datetime
 
 
 class Storage:
-    _instance: Optional["Storage"] = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super(Storage, cls).__new__(cls)
-        return cls._instance
-
     """
     A class to manage SQLite database operations for DDNS services.
 
     This class handles the creation, updating, and retrieval of domain records
     in a SQLite database.
     """
+
+    _instance: Optional["Storage"] = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(Storage, cls).__new__(cls)
+        return cls._instance
 
     def __init__(self, filename: str = "py_ddns.db"):
         self.connection = sqlite3.connect(filename)
