@@ -14,7 +14,8 @@ from datetime import datetime
 
 import requests
 
-from pyddns.utils import _get_config, _get_storage
+from pyddns.config import Config
+from pyddns.storage import Storage
 from pyddns.client import DDNSClient
 
 
@@ -31,8 +32,8 @@ class DuckDNS(DDNSClient):
         self.url = "https://www.duckdns.org/update"
         self.service_name = "Duckdns"
 
-        self.config = _get_config()
-        self.storage = _get_storage()
+        self.config = Config()
+        self.storage = Storage()
         self.token = token or self.config.get(self.service_name, "token")
 
     def _obtain_record(

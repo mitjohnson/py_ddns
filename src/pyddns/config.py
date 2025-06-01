@@ -13,7 +13,17 @@ import logging
 import os
 
 
+from typing import Optional
+
+
 class Config:
+    _instance: Optional["Config"] = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(Config, cls).__new__(cls)
+        return cls._instance
+
     """
     A class to manage configuration settings using ConfigParser.
 

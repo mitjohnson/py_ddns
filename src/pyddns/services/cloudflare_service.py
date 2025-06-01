@@ -20,7 +20,8 @@ from cloudflare import (
 )
 from cloudflare.types.dns import RecordResponse
 
-from pyddns.utils import _get_config, _get_storage
+from pyddns.config import Config
+from pyddns.storage import Storage
 from pyddns.client import DDNSClient
 
 
@@ -37,8 +38,8 @@ class CloudflareDNS(DDNSClient):
     ) -> None:
         logging.debug("CloudFlare DNS: Initializing Cloudflare_DDNS client.")
         self.service_name = "Cloudflare"
-        self.config = _get_config()
-        self.storage = _get_storage()
+        self.config = Config()
+        self.storage = Storage()
 
         self.zone_id: str = zone_id or self.config.get(
             self.service_name, "zone_id"
