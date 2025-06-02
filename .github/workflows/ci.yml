@@ -4,7 +4,13 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**/*.py'
+      - '**/tests/**'
   pull_request:
+    paths:
+      - '**/*.py'
+      - '**/tests/**'
 
 jobs:
   test:
