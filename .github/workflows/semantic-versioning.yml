@@ -1,14 +1,7 @@
 name: Continuous Delivery
 
 on:
-  workflow_run:
-    workflows:
-      - Pylint
-    types:
-      - completed
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 # default: least privileged permissions across all jobs
 permissions:
