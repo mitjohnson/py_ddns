@@ -9,9 +9,6 @@ permissions:
 
 jobs:
   release:
-    needs:
-      - test
-      - build
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-release-${{ github.ref_name }}
