@@ -1,9 +1,19 @@
 name: Pylint
 
-on: [push]
+on:
+  workflow_run:
+    workflows:
+      - Run Pytest
+    types:
+      - completed
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   build:
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       matrix:
