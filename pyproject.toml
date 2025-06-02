@@ -69,7 +69,7 @@ pythonpath = ["src"]
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
-build_command = "python -m build --sdist --wheel ."
+build_command = "pip install build && python -m build --sdist --wheel ."
 commit_parser = "conventional"
 
 [tool.semantic_release.commit_parser_options]
